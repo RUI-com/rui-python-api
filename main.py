@@ -14,7 +14,10 @@ async def stt(audio: UploadFile = File(...)):
         tmp.write(await audio.read())
         tmp_path = tmp.name
 
-    result = subprocess.run(["python", "stt_script.py", tmp_path], capture_output=True, text=True)
+    result = subprocess.run(["python", "stt_script.py", tmp_path], capture_output=True, text=True, encoding="utf-8")
+    if result.returncode != 0:
+     JSONResponse(content={"error": f"STT script error: {result.stderr}"}, status_code=500)
+
     os.remove(tmp_path)
 
     return JSONResponse(content={"text": result.stdout.strip()})
@@ -23,7 +26,8 @@ async def stt(audio: UploadFile = File(...)):
 @app.post("/tts")
 async def tts(text: str = Form(...)):
     out_path = "output.mp3"
-    subprocess.run(["python", "gtts_script.py", "--text", text, "--out_path", out_path])
+    script_path = os.path.join(os.path.dirname(__file__), "gtts_script.py")
+    subprocess.run(["python", script_path, "--text", text, "--out_path", out_path])
     
     with open(out_path, "rb") as f:
         audio_data = base64.b64encode(f.read()).decode()
