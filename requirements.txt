@@ -4,3 +4,4 @@ google-generativeai
 gtts
 openai-whisper
 whisper
+python-multipart
