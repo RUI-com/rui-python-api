@@ -16,7 +16,8 @@ async def stt(audio: UploadFile = File(...)):
 
     result = subprocess.run(["python", "stt_script.py", tmp_path], capture_output=True, text=True, encoding="utf-8")
     if result.returncode != 0:
-     JSONResponse(content={"error": f"STT script error: {result.stderr}"}, status_code=500)
+     return JSONResponse(content={"error": f"STT script error: {result.stderr}"}, status_code=500)
+
 
     os.remove(tmp_path)
 
