@@ -20,16 +20,25 @@ app.add_middleware(
 # Speech to Text Endpoint
 @app.post("/stt")
 async def stt(audio: UploadFile = File(...)):
+    if audio.content_type not in ["audio/webm", "audio/mpeg", "audio/wav"]:
+        return JSONResponse(content={"error": "Unsupported audio format"}, status_code=400)
+
+    contents = await audio.read()
+    if len(contents) == 0:
+        return JSONResponse(content={"error": "Empty audio file"}, status_code=400)
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
-        tmp.write(await audio.read())
+        tmp.write(contents)
         tmp_path = tmp.name
 
-    result = subprocess.run(["python", "stt_script.py", tmp_path], capture_output=True, text=True, encoding="utf-8")
-    if result.returncode != 0:
-        return JSONResponse(content={"error": f"STT script error: {result.stderr}"}, status_code=500)
-
-    os.remove(tmp_path)
-    return JSONResponse(content={"text": result.stdout.strip()})
+    try:
+        result = subprocess.run(["python", "stt_script.py", tmp_path], capture_output=True, text=True, encoding="utf-8")
+        if result.returncode != 0:
+            return JSONResponse(content={"error": f"STT script error: {result.stderr}"}, status_code=500)
+        return JSONResponse(content={"text": result.stdout.strip()})
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
 # Text to Speech Endpoint
 @app.post("/tts")
